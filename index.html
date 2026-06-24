@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSR Ads Tracker - Perfect Launch Window</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f1419;color:#e7e9ea;line-height:1.5}
+.ctn{max-width:1440px;margin:0 auto;padding:20px}
+h1{font-size:1.5rem;color:#fff;margin-bottom:4px}
+.sub{color:#71767b;font-size:.85rem;margin-bottom:20px}
+.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:22px}
+.kc{background:#1e2732;border-radius:10px;padding:14px;border:1px solid #2f3940}
+.kl{font-size:.68rem;color:#71767b;text-transform:uppercase;letter-spacing:.5px}
+.kv{font-size:1.6rem;font-weight:700;margin:3px 0}
+.ks{font-size:.75rem;color:#71767b}
+.vr{color:#f4212e}.vy{color:#ffd400}.vg{color:#00ba7c}.vb{color:#1d9bf0}.vo{color:#ff7a00}
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+.cc{background:#1e2732;border-radius:10px;padding:18px;border:1px solid #2f3940}
+.cc h3{font-size:.82rem;color:#71767b;margin-bottom:10px}
+.fl-wrap{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end}
+.fl-wrap select,.fl-wrap input{background:#1e2732;border:1px solid #2f3940;color:#e7e9ea;padding:7px 11px;border-radius:8px;font-size:.82rem}
+.fl-wrap input{width:200px}
+.fl-wrap select:focus,.fl-wrap input:focus{outline:none;border-color:#1d9bf0}
+.fll{font-size:.68rem;color:#71767b;margin-bottom:2px}
+.tw{background:#1e2732;border-radius:10px;border:1px solid #2f3940;overflow:hidden}
+.th{padding:10px 14px;border-bottom:1px solid #2f3940;display:flex;justify-content:space-between;align-items:center}
+.th h3{font-size:.82rem;color:#71767b}
+.tc{font-size:.78rem;color:#1d9bf0}
+table{width:100%;border-collapse:collapse;font-size:.76rem}
+thead th{background:#16202a;padding:9px 10px;text-align:left;color:#71767b;font-weight:600;text-transform:uppercase;font-size:.66rem;letter-spacing:.4px;cursor:pointer;white-space:nowrap}
+thead th:hover{color:#1d9bf0}
+td{padding:7px 10px;border-top:1px solid #2f3940}
+tr:hover td{background:#16202a}
+.ts{max-height:480px;overflow-y:auto}
+.pill{display:inline-block;padding:2px 7px;border-radius:10px;font-size:.66rem;font-weight:600}
+.progress{height:6px;background:#2f3940;border-radius:3px;overflow:hidden;width:80px;display:inline-block;vertical-align:middle;margin-left:5px}
+.progress-bar{height:100%;border-radius:3px}
+@media(max-width:768px){.cg{grid-template-columns:1fr}.fl-wrap{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="ctn">
+<h1>DSR Ads Tracker</h1>
+<p class="sub">Foco: Ativacao de Sponsored Ads (SP/SB/SD) | Janela Perfect Launch (90 dias) | Snapshot W24</p>
+<div class="kg" id="kpis"></div>
+<div class="cg">
+<div class="cc"><h3>Urgencia PL - Dias Restantes (sellers sem Ads)</h3><canvas id="c1"></canvas></div>
+<div class="cc"><h3>Ads Adoption por Alias</h3><canvas id="c2"></canvas></div>
+<div class="cc"><h3>GMS sem cobertura Ads por Alias</h3><canvas id="c3"></canvas></div>
+<div class="cc"><h3>Top 10 Oportunidades (GMS sem SP)</h3><canvas id="c4"></canvas></div>
+</div>
+<div class="fl-wrap">
+<div><div class="fll">Buscar</div><input type="text" id="sBusca" placeholder="Nome ou MCID..." oninput="render()"></div>
+<div><div class="fll">Alias</div><select id="sAlias" onchange="render()"><option value="">Todos</option></select></div>
+<div><div class="fll">Team</div><select id="sTeam" onchange="render()"><option value="">Todos</option></select></div>
+<div><div class="fll">Urgencia PL</div><select id="sUrg" onchange="render()"><option value="">Todas</option><option value="CRITICO">Critico (&lt;15d)</option><option value="URGENTE">Urgente (15-30d)</option><option value="ATENCAO">Atencao (30-60d)</option><option value="OK">OK (&gt;60d)</option><option value="EXPIRADO">Expirado</option></select></div>
+<div><div class="fll">Ads Status</div><select id="sAds" onchange="render()"><option value="">Todos</option><option value="SEM_ADS">Sem Ads</option><option value="SP_ONLY">Apenas SP</option><option value="MULTI">Multi-channel (SP+SB/SD)</option></select></div>
+</div>
+<div class="tw">
+<div class="th"><h3>Sellers - Janela Perfect Launch + Ads</h3><span class="tc" id="cnt"></span></div>
+<div class="ts"><table><thead><tr id="thR"></tr></thead><tbody id="tb"></tbody></table></div>
+</div>
+</div>
+<script>
+// DATA: [seller,alias,team,segment,launch_date,gms_ytd,pl_score,pl_threshold,gap_to_pl,days_remaining,has_sp,has_sb,has_sd,sp_rev,total_ads_rev,ads_penetration,missing_levers,deals,coupons,email]
+const D=[
+["GFERRO","mcasaqui","Growth","RESELLER","2026-04-23",361,5.87,5.97,0.10,36,"N","N","N",0,0,0,"Ads/Coupon/Deal, MARS","N","N","ferguerre@gmail.com"],
+["Godesh Store","mcasaqui","Growth","RESELLER","2026-04-09",0,5.79,5.97,0.18,22,"N","N","N",0,0,0,"Ads 2nd Channel, MARS, 40+ BAs","N","N",""],
+["California Bikes","mcasaqui","Growth","RESELLER","2026-04-10",37526,5.70,5.97,0.27,23,"N","N","N",0,0,0,"FBA, MARS, 40+ BAs","N","N",""],
+["GlobalelectronicsStore","mcasaqui","Growth","RBO","2026-05-04",41944,4.84,5.91,1.07,47,"Y","N","N",473,473,0.043,"Ads 2nd Channel, MARS, 40+ BAs","N","N",""],
+["Gran Peregrino Oficial","mikabon","Growth","RBO","2026-05-21",710,4.70,5.91,1.21,64,"N","N","N",0,0,0,"Ads 2nd Channel, MARS, 40+ BAs","N","Y","mkt.granperegrino@gmail.com"],
+["Taiff Loja Oficial","mcasaqui","Growth","RESELLER","2026-04-22",31296,4.37,5.97,1.60,35,"N","N","N",0,0,0,"FBA, Ads 2nd Channel, MARS","Y","N","taiffoficial@unlockcommerce.com.br"],
+["LEITURA CONJUNTO NACIONAL DF","mcasaqui","Growth","RESELLER","2026-04-27",180648,4.04,5.97,1.93,40,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal","N","N","tiago@leitura.com.br"],
+["Leitura Rio Preto","mcasaqui","Growth","RESELLER","2026-05-20",6424,4.04,5.97,1.93,63,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal","N","N","riopreto.gerencia@gmail.com"],
+["Leitura sete Lagoas","mikabon","Growth","RESELLER","2026-05-04",18919,4.04,5.97,1.93,47,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal","N","N","setelagoas.gerencia@leitura.com.br"],
+["LOVE INSIDE","gpsantos","DSR+","RESELLER","2026-05-28",0,3.57,5.97,2.40,71,"N","N","N",0,0,0,"Ads/Coupon/Deal, MARS, 40+ BAs","N","N",""],
+["Serginho Distribuidora","mikabon","Growth","RESELLER","2026-05-18",893,3.50,5.97,2.47,61,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, 40+ BAs","N","N","pecasvendas026@gmail.com"],
+["GFC Ferramentas","guilahr","Growth","RESELLER","2026-03-19",0,3.07,5.97,2.90,1,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N",""],
+["MOVACEL SP","guilahr","Growth","RESELLER","2026-03-30",139992,3.07,5.97,2.90,12,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","cellfone@grupoamcs.com.br"],
+["Herbissimo","mcasaqui","Growth","RESELLER","2026-04-13",1678,3.07,5.97,2.90,26,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","atendimento@herbissimo.com.br"],
+["LEITURA ITAQUEA","mcasaqui","Growth","RESELLER","2026-04-25",7009,3.07,5.97,2.90,38,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","itaquera.gerencia@leitura.com.br"],
+["Leitura Osasco","mcasaqui","Growth","RESELLER","2026-04-20",73843,3.07,5.97,2.90,33,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","osasco.gerencia@leitura.com.br"],
+["Leitura Nova America","mcasaqui","Growth","RESELLER","2026-05-27",69502,3.07,5.97,2.90,70,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","rodrigoleitura2@gmail.com"],
+["Leitura light","mcasaqui","Growth","RESELLER","2026-05-04",68163,3.07,5.97,2.90,47,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","light.gerencia@leitura.com.br"],
+["Somague","mcasaqui","Growth","RESELLER","2026-04-09",8403,3.07,5.97,2.90,22,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","infinity.amazon26@gmail.com"],
+["Leitura Valparaiso/GO","mcasaqui","Growth","RESELLER","2026-04-07",15708,3.07,5.97,2.90,20,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","valparaiso.gerencia@leitura.com.br"],
+["Leitura New York Barra","mcasaqui","Growth","RESELLER","2026-03-30",65156,3.07,5.97,2.90,12,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","leituranybarraml@gmail.com"],
+["Leitura Porto Alegre","mcasaqui","Growth","RESELLER","2026-04-27",140075,3.07,5.97,2.90,40,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","bss.gerencia@leitura.com.br"],
+["Leitura Shopping Contagem","mcasaqui","Growth","RESELLER","2026-04-20",34194,3.07,5.97,2.90,33,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","luiz@leitura.com.br"],
+["Leitura Patio Belem","mcasaqui","Growth","RESELLER","2026-04-24",14229,3.07,5.97,2.90,37,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","patiobelem.gerencia@leitura.com.br"],
+["Livraria Leitura CXS","mcasaqui","Growth","RESELLER","2026-04-27",11480,3.07,5.97,2.90,40,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","villagio.gerencia@leitura.com.br"],
+["Leitura Aricanduva","mcasaqui","Growth","RESELLER","2026-04-13",95408,3.07,5.97,2.90,26,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","aricanduva.gerencia@leitura.com.br"],
+["LEITURA MARKET PLACE","mcasaqui","Growth","RESELLER","2026-03-30",50366,3.07,5.97,2.90,12,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","wesley@leitura.com.br"],
+["Leitura Jardim Sul","mcasaqui","Growth","RESELLER","2026-04-22",16276,3.07,5.97,2.90,35,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","jardimsul.gerencia@leitura.com.br"],
+["Leitura JK Shopping","mcasaqui","Growth","RESELLER","2026-04-22",58601,3.07,5.97,2.90,35,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","jk.gerencia@leitura.com.br"],
+["Leitura Boa viagem","mcasaqui","Growth","RESELLER","2026-04-22",14398,3.07,5.97,2.90,35,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","recife.gerencia@leitura.com.br"],
+["Livraria Leitura plaza niteroi","mcasaqui","Growth","RESELLER","2026-04-27",63111,3.07,5.97,2.90,40,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","plazaniteroi.gerencia@leitura.com.br"],
+["Leitura Campinas Shopping","mcasaqui","Growth","RESELLER","2026-03-24",36828,3.07,5.97,2.90,6,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","campinas2.gerencia@leitura.com.br"],
+["Leitura Santana","mcasaqui","Growth","RESELLER","2026-04-24",42467,3.07,5.97,2.90,37,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","santana.gerencia@leitura.com.br"],
+["LEITURA SAO BERNARDO PLAZA","mcasaqui","Growth","RESELLER","2026-04-22",3750,3.07,5.97,2.90,35,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","saobernardo.gerencia@leitura.com.br"],
+["Leitura Mangabeira","mcasaqui","Growth","RESELLER","2026-04-22",3061,3.07,5.97,2.90,35,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","mangabeira.gerencia@leitura.com.br"],
+["Leitura West Plaza","mcasaqui","Growth","RESELLER","2026-04-25",41604,3.07,5.97,2.90,38,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","westplaza.gerencia@leitura.com.br"],
+["Leitura Parkshopping DF","mcasaqui","Growth","RESELLER","2026-04-27",42465,3.07,5.97,2.90,40,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","parkshopping.gerencia@leitura.com.br"],
+["Baraoshop Variedades","meraross","Growth","RESELLER","2026-05-04",12854,3.07,5.97,2.90,47,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","baraoshopvariedades@hotmail.com"],
+["Leitura Indaiatuba","meraross","Growth","RESELLER","2026-06-01",13934,3.07,5.97,2.90,75,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","indaiatuba.gerencia@leitura.com.br"],
+["LEITURA KENNEDY","mikabon","Growth","RESELLER","2026-04-24",40133,3.07,5.97,2.90,37,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","kennedy.gerencia@leitura.com.br"],
+["Leitura Guarulhos","mikabon","Growth","RESELLER","2026-05-12",10812,3.07,5.97,2.90,55,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","guarulhos.infor@leitura.com.br"],
+["LIVRARIA LEITURA TERESINA","mikabon","Growth","RESELLER","2026-04-29",4209,3.07,5.97,2.90,42,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","riopoty.atend@leitura.com.br"],
+["Leitura Boulevard DF","mikabon","Growth","RESELLER","2026-04-27",64664,3.07,5.97,2.90,40,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N",""],
+["Leitura Taguatinga","mikabon","Growth","RESELLER","2026-05-04",50202,3.07,5.97,2.90,47,"Y","N","N",37,37,0.004,"FBA, Ads/Coupon/Deal, MARS","N","N","gerencia.taguatinga@gmail.com"],
+["LIVRARIA LEITURA AM","mikabon","Growth","RESELLER","2026-04-24",51258,3.07,5.97,2.90,37,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","cpdamazonas@leitura.com.br"],
+["Leitura Bahia","mikabon","Growth","RESELLER","2026-04-29",53234,3.07,5.97,2.90,42,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","shoppingdabahia.gerencia@leitura.com.br"],
+["Livraria Leitura Minas Shopping","mikabon","Growth","RESELLER","2026-05-12",65319,3.07,5.97,2.90,55,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","fernando.borges@leitura.com.br"],
+["Leitura Estacao BH","mikabon","Growth","RESELLER","2026-04-24",69158,3.07,5.97,2.90,37,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","estacaobh.gerencia@leitura.com.br"],
+["LEITURA SHOPPING CIDADE","mikabon","Growth","RESELLER","2026-05-12",111798,3.07,5.97,2.90,55,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","cidade.gerencia@leitura.com.br"],
+["Leitura Alvorada Patio Brasil","mikabon","Growth","RESELLER","2026-04-23",80313,3.07,5.97,2.90,36,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","patiobrasil.gerencia@leitura.com.br"],
+["LEITURA DA ILHA","mikabon","Growth","RESELLER","2026-04-24",7188,3.07,5.97,2.90,37,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","dailha.gerencia@leitura.com.br"],
+["Leitura ABC","mikabon","Growth","RESELLER","2026-05-14",23855,3.07,5.97,2.90,57,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","abc.gerencia@leitura.com.br"],
+["LEITURA UBERLANDIA","mikabon","Growth","RESELLER","2026-04-24",131570,3.07,5.97,2.90,37,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","uberlandia.gerencia@leitura.com.br"],
+["LEITURA TERRACO","mikabon","Growth","RESELLER","2026-04-28",11663,3.07,5.97,2.90,41,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","terraco.gerencia@leitura.com.br"],
+["Livraria Leitura Aracaju","mikabon","Growth","RESELLER","2026-04-14",15781,3.07,5.97,2.90,27,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","riomararacaju.gerencia@leitura.com.br"],
+["Leitura Patio Savassi","mikabon","Growth","RESELLER","2026-04-29",11927,3.07,5.97,2.90,42,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","patio.ecommerce@leitura.com.br"],
+["Livraria Leitura Piracicaba","mikabon","Growth","RESELLER","2026-05-12",853,3.07,5.97,2.90,55,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","leiturapiracicaba@leitura.com.br"],
+["Grupo Mallory","mikabon","Growth","RESELLER","2026-05-12",1588,3.07,5.97,2.90,55,"N","N","N",0,0,0,"FBA, Ads/Coupon/Deal, MARS","N","N","faturamentomallory@fullcommercebrasil.com.br"],
+["KFIMPORT","mcasaqui","Growth","RESELLER","2026-04-08",4875,3.03,5.97,2.94,21,"N","N","N",0,0,0,"Ads/Coupon/Deal, MARS, 40+ BAs","N","N","fachinetticar@gmail.com"],
+["NEW AGE ACESSORIOS","guilahr","Growth","UBO","2026-04-30",2398,2.90,5.91,3.01,43,"N","N","N",0,0,0,"Ads/Coupon/Deal, MARS, 40+ BAs","N","N","gaeprodutos@terra.com.br"],
+];
+// ============================================
+// HELPERS
+// ============================================
+const fmt=n=>n>=1000000?'$'+(n/1000000).toFixed(1)+'M':n>=1000?'$'+(n/1000).toFixed(0)+'K':'$'+n;
+
+function urgencia(days){
+  if(days<=0) return 'EXPIRADO';
+  if(days<=15) return 'CRITICO';
+  if(days<=30) return 'URGENTE';
+  if(days<=60) return 'ATENCAO';
+  return 'OK';
+}
+function urgBadge(days){
+  const u=urgencia(days);
+  const styles={EXPIRADO:'background:#55000088;color:#f4212e;border:1px solid #f4212e55',CRITICO:'background:#f4212e22;color:#f4212e;border:1px solid #f4212e44',URGENTE:'background:#ff7a0022;color:#ff7a00;border:1px solid #ff7a0044',ATENCAO:'background:#ffd40022;color:#ffd400;border:1px solid #ffd40044',OK:'background:#00ba7c22;color:#00ba7c;border:1px solid #00ba7c44'};
+  return `<span class="pill" style="${styles[u]}">${u} (${days}d)</span>`;
+}
+function adsBadge(r){
+  const sp=r[10]==='Y',sb=r[11]==='Y',sd=r[12]==='Y';
+  if(!sp&&!sb&&!sd) return '<span style="color:#f4212e;font-weight:600">Sem Ads</span>';
+  let t=[];if(sp)t.push('SP');if(sb)t.push('SB');if(sd)t.push('SD');
+  return `<span style="color:#00ba7c;font-weight:600">${t.join('+')}</span>`;
+}
+function plProgress(score,threshold){
+  const pct=Math.min((score/threshold)*100,100);
+  const color=pct>=90?'#00ba7c':pct>=70?'#ffd400':pct>=50?'#ff7a00':'#f4212e';
+  return `${score.toFixed(2)}<div class="progress"><div class="progress-bar" style="width:${pct}%;background:${color}"></div></div>`;
+}
+function adsStatus(r){
+  const sp=r[10]==='Y',sb=r[11]==='Y',sd=r[12]==='Y';
+  if(!sp&&!sb&&!sd) return 'SEM_ADS';
+  if(sp&&!sb&&!sd) return 'SP_ONLY';
+  return 'MULTI';
+}
+
+// ============================================
+// FILTERS
+// ============================================
+function initFilters(){
+  const als=[...new Set(D.map(r=>r[1]))].sort();
+  const tms=[...new Set(D.map(r=>r[2]))].sort();
+  als.forEach(a=>{document.getElementById('sAlias').innerHTML+=`<option>${a}</option>`});
+  tms.forEach(t=>{document.getElementById('sTeam').innerHTML+=`<option>${t}</option>`});
+}
+
+function filtered(){
+  const q=document.getElementById('sBusca').value.toLowerCase();
+  const a=document.getElementById('sAlias').value;
+  const t=document.getElementById('sTeam').value;
+  const u=document.getElementById('sUrg').value;
+  const ads=document.getElementById('sAds').value;
+  return D.filter(r=>{
+    if(q&&!r[0].toLowerCase().includes(q)) return false;
+    if(a&&r[1]!==a) return false;
+    if(t&&r[2]!==t) return false;
+    if(u&&urgencia(r[9])!==u) return false;
+    if(ads&&adsStatus(r)!==ads) return false;
+    return true;
+  });
+}
+
+// ============================================
+// RENDER
+// ============================================
+function renderKPIs(data){
+  const total=data.length;
+  const semAds=data.filter(r=>r[10]==='N'&&r[11]==='N'&&r[12]==='N').length;
+  const gms=data.reduce((s,r)=>s+r[5],0);
+  const gmsSemAds=data.filter(r=>r[10]==='N').reduce((s,r)=>s+r[5],0);
+  const critico=data.filter(r=>r[9]<=15&&r[10]==='N').length;
+  const comSP=data.filter(r=>r[10]==='Y').length;
+  document.getElementById('kpis').innerHTML=`
+    <div class="kc"><div class="kl">Sellers na Janela PL</div><div class="kv vb">${total}</div><div class="ks">com Ads como missing lever</div></div>
+    <div class="kc"><div class="kl">Sem SP Ativo</div><div class="kv vr">${semAds}</div><div class="ks">${((semAds/total)*100).toFixed(0)}% do cohort</div></div>
+    <div class="kc"><div class="kl">Ja Ativaram SP</div><div class="kv vg">${comSP}</div><div class="ks">${((comSP/total)*100).toFixed(0)}% conversao</div></div>
+    <div class="kc"><div class="kl">GMS sem cobertura Ads</div><div class="kv vy">${fmt(gmsSemAds)}</div><div class="ks">potencial ${fmt(gmsSemAds*0.02)} (2%)</div></div>
+    <div class="kc"><div class="kl">Critico (&lt;15d sem SP)</div><div class="kv vr">${critico}</div><div class="ks">janela fechando!</div></div>
+    <div class="kc"><div class="kl">Ads Revenue YTD</div><div class="kv vg">${fmt(data.reduce((s,r)=>s+r[14],0))}</div><div class="ks">sellers que ja ativaram</div></div>
+  `;
+}
+
+function renderTable(data){
+  const tb=document.getElementById('tb');
+  tb.innerHTML=data.map(r=>`<tr>
+    <td style="font-weight:600;color:#fff">${r[0]}</td>
+    <td>${r[1]}</td>
+    <td>${r[2]}</td>
+    <td>${adsBadge(r)}</td>
+    <td>${urgBadge(r[9])}</td>
+    <td>${plProgress(r[6],r[7])}</td>
+    <td style="text-align:right;font-weight:600">${fmt(r[5])}</td>
+    <td style="text-align:right">${r[14]>0?'$'+r[14].toLocaleString():'—'}</td>
+    <td style="font-size:.66rem;color:#71767b;max-width:180px;overflow:hidden;text-overflow:ellipsis">${r[16]}</td>
+    <td style="font-size:.66rem;color:#71767b">${r[19]}</td>
+  </tr>`).join('');
+  document.getElementById('cnt').textContent=data.length+' sellers';
+}
+
+let charts=[];
+function renderCharts(data){
+  charts.forEach(c=>c.destroy());charts=[];
+  // C1: Urgencia distribution
+  const uCounts={CRITICO:0,URGENTE:0,ATENCAO:0,OK:0,EXPIRADO:0};
+  data.filter(r=>r[10]==='N').forEach(r=>{uCounts[urgencia(r[9])]++});
+  charts.push(new Chart(document.getElementById('c1'),{type:'bar',data:{labels:Object.keys(uCounts),datasets:[{data:Object.values(uCounts),backgroundColor:['#f4212e','#ff7a00','#ffd400','#00ba7c','#555']}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#71767b'},grid:{display:false}},y:{ticks:{color:'#71767b'},grid:{color:'#2f394066'}}}}}));
+
+  // C2: Ads adoption por alias
+  const alData={};
+  data.forEach(r=>{if(!alData[r[1]])alData[r[1]]={com:0,sem:0};r[10]==='Y'?alData[r[1]].com++:alData[r[1]].sem++});
+  const alKeys=Object.keys(alData).sort();
+  charts.push(new Chart(document.getElementById('c2'),{type:'bar',data:{labels:alKeys,datasets:[{label:'Com SP',data:alKeys.map(k=>alData[k].com),backgroundColor:'#00ba7c'},{label:'Sem SP',data:alKeys.map(k=>alData[k].sem),backgroundColor:'#f4212e'}]},options:{plugins:{legend:{position:'bottom',labels:{color:'#71767b'}}},scales:{x:{stacked:true,ticks:{color:'#71767b'},grid:{display:false}},y:{stacked:true,ticks:{color:'#71767b'},grid:{color:'#2f394066'}}}}}));
+
+  // C3: GMS por alias (sem ads)
+  const alGms={};
+  data.filter(r=>r[10]==='N').forEach(r=>{alGms[r[1]]=(alGms[r[1]]||0)+r[5]});
+  const alS=Object.entries(alGms).sort((a,b)=>b[1]-a[1]);
+  charts.push(new Chart(document.getElementById('c3'),{type:'bar',data:{labels:alS.map(a=>a[0]),datasets:[{data:alS.map(a=>a[1]),backgroundColor:'#1d9bf0'}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#71767b',callback:v=>fmt(v)},grid:{color:'#2f394066'}},y:{ticks:{color:'#e7e9ea'},grid:{display:false}}}}}));
+
+  // C4: Top 10 GMS sem SP
+  const top=[...data].filter(r=>r[10]==='N').sort((a,b)=>b[5]-a[5]).slice(0,10);
+  charts.push(new Chart(document.getElementById('c4'),{type:'bar',data:{labels:top.map(r=>r[0].substring(0,22)),datasets:[{data:top.map(r=>r[5]),backgroundColor:top.map(r=>r[9]<=15?'#f4212e':r[9]<=30?'#ff7a00':'#1d9bf0')}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#71767b',callback:v=>fmt(v)},grid:{color:'#2f394066'}},y:{ticks:{color:'#e7e9ea',font:{size:10}},grid:{display:false}}}}}));
+}
+
+let sortCol=-1,sortAsc=true;
+function sortTable(col){if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=true;}render();}
+
+function render(){
+  let data=filtered();
+  if(sortCol>=0){data.sort((a,b)=>{let va=a[sortCol],vb=b[sortCol];if(typeof va==='number')return sortAsc?va-vb:vb-va;return sortAsc?String(va).localeCompare(String(vb)):String(vb).localeCompare(String(va))});}
+  renderKPIs(data);renderTable(data);renderCharts(data);
+}
+
+document.getElementById('thR').innerHTML=['Seller','Alias','Team','Ads Status','Urgencia PL','PL Score','GMS YTD','Ads Rev','Missing Levers','Email'].map((h,i)=>`<th onclick="sortTable(${i})">${h}</th>`).join('');
+initFilters();render();
+</script>
+</body>
+</html>
